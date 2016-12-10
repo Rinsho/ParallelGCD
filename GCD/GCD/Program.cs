@@ -9,41 +9,40 @@ namespace GCD
     {
         static void Main(string[] args)
         {
-            //Change seed and/or count, or set to a custom list
-            List<int> numbers = GenerateList(17, 1000000);
+            List<uint> numbers = GenerateList(17, 1000000);
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            int result = GCD.CalculateSequential(numbers);
+            uint result = GCD.CalculateSequential(numbers);
             sw.Stop();
             Console.WriteLine($"Sequential GCD: {result}");
             Console.WriteLine($"Time (ms): {sw.ElapsedMilliseconds}");
             sw.Reset();
             sw.Start();
-            result = GCD.CalculateParallel(numbers, 10000);
+            result = GCD.CalculateParallel(numbers, 15000);
             sw.Stop();
             Console.WriteLine($"Parallel GCD: {result}");
             Console.WriteLine($"Time (ms): {sw.ElapsedMilliseconds}");
             Console.ReadKey();
         }
 
-        //Accepts a seed value up to 3571, the 500th prime.
-        //Past that will be out of the bounds of an integer.
-        private static List<int> GenerateList(int seed, int count)
+        //Accepts a seed value up to 3571, the 500th prime.  Past that will be out
+        //of range for a uint unless a smaller maxRange is specified.
+        private static List<uint> GenerateList(int seed, int count, int maxRange = 1200000)
         {
-            List<int> values = new List<int>(count);
+            List<uint> values = new List<uint>(count);
             Random rnd = new Random();
             for (int i = 0; i < count; i++)
-                values.Add(seed * rnd.Next(601367));
+                values.Add((uint)(seed * rnd.Next(maxRange)));
             return values;
         }
     }
 
     public static class GCD
     {
-        public static int CalculateParallel(List<int> numbers, int taskLoad)
+        public static uint CalculateParallel(List<uint> numbers, int taskLoad)
         {
             int totalTasks = numbers.Count / taskLoad;
-            Task<int>[] gcdTasks = new Task<int>[totalTasks];
+            Task<uint>[] gcdTasks = new Task<uint>[totalTasks];
             for (int i = 0; i < totalTasks; i++)
             {
                 int startIndex = i * taskLoad;
@@ -51,7 +50,7 @@ namespace GCD
                 gcdTasks[i] = Task.Run(() => CollapseGCDRange(numbers, startIndex, endIndex));
             }
 
-            int gcd = 0;
+            uint gcd = 0;
             int remainingNumbers = numbers.Count % taskLoad;
             if (remainingNumbers > 0)
             {
@@ -60,28 +59,28 @@ namespace GCD
             }
 
             Task.WaitAll(gcdTasks);
-            foreach (Task<int> task in gcdTasks)
+            foreach (Task<uint> task in gcdTasks)
                 gcd = BinaryEuclidGCD(gcd, task.Result);
             return gcd;
         }
 
-        private static int CollapseGCDRange(List<int> numbers, int startIndex, int endIndex)
+        private static uint CollapseGCDRange(List<uint> numbers, int startIndex, int endIndex)
         {
-            int gcd = numbers[startIndex];
+            uint gcd = numbers[startIndex];
             for (int j = startIndex + 1; j < endIndex; j++)
                 gcd = BinaryEuclidGCD(gcd, numbers[j]);
             return gcd;
         }
 
-        public static int CalculateSequential(List<int> numbers)
+        public static uint CalculateSequential(List<uint> numbers)
         {
-            int gcd = numbers[0];
+            uint gcd = numbers[0];
             for (int i = 1; i < numbers.Count; i++)
                 gcd = BinaryEuclidGCD(gcd, numbers[i]);
             return gcd;
         }
 
-        public static int BinaryEuclidGCD(int firstNumber, int secondNumber)
+        public static uint BinaryEuclidGCD(uint firstNumber, uint secondNumber)
         {
             if (firstNumber == 0)
                 return secondNumber;
