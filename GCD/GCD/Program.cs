@@ -12,13 +12,13 @@ namespace GCD
             List<uint> numbers = GenerateList(17, 1000000);
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            uint result = GCD.CalculateSequential(numbers);
+            uint result = GCD.CalculateGCDForRange(numbers, 0, numbers.Count);
             sw.Stop();
             Console.WriteLine($"Sequential GCD: {result}");
             Console.WriteLine($"Time (ms): {sw.ElapsedMilliseconds}");
             sw.Reset();
             sw.Start();
-            result = GCD.CalculateParallel(numbers, 15000);
+            result = GCD.CalculateParallel(numbers, 10000);
             sw.Stop();
             Console.WriteLine($"Parallel GCD: {result}");
             Console.WriteLine($"Time (ms): {sw.ElapsedMilliseconds}");
@@ -31,7 +31,7 @@ namespace GCD
         {
             List<uint> values = new List<uint>(count);
             Random rnd = new Random();
-            for (int i = 0; i < count; i++)
+            for (; count > 0; count--)
                 values.Add((uint)(seed * rnd.Next(maxRange)));
             return values;
         }
@@ -46,17 +46,13 @@ namespace GCD
             for (int i = 0; i < totalTasks; i++)
             {
                 int startIndex = i * taskLoad;
-                int endIndex = (i * taskLoad) + (taskLoad - 1);
-                gcdTasks[i] = Task.Run(() => CollapseGCDRange(numbers, startIndex, endIndex));
+                gcdTasks[i] = Task.Run(() => CalculateGCDForRange(numbers, startIndex, taskLoad));
             }
 
             uint gcd = 0;
             int remainingNumbers = numbers.Count % taskLoad;
             if (remainingNumbers > 0)
-            {
-                int startIndex = totalTasks * taskLoad;
-                gcd = CollapseGCDRange(numbers, startIndex, --remainingNumbers);
-            }
+                gcd = CalculateGCDForRange(numbers, totalTasks * taskLoad, remainingNumbers);
 
             Task.WaitAll(gcdTasks);
             foreach (Task<uint> task in gcdTasks)
@@ -64,19 +60,11 @@ namespace GCD
             return gcd;
         }
 
-        private static uint CollapseGCDRange(List<uint> numbers, int startIndex, int endIndex)
+        public static uint CalculateGCDForRange(List<uint> numbers, int startIndex, int count)
         {
             uint gcd = numbers[startIndex];
-            for (int j = startIndex + 1; j < endIndex; j++)
-                gcd = BinaryEuclidGCD(gcd, numbers[j]);
-            return gcd;
-        }
-
-        public static uint CalculateSequential(List<uint> numbers)
-        {
-            uint gcd = numbers[0];
-            for (int i = 1; i < numbers.Count; i++)
-                gcd = BinaryEuclidGCD(gcd, numbers[i]);
+            for (; count > 1; count--)
+                gcd = BinaryEuclidGCD(gcd, numbers[++startIndex]);
             return gcd;
         }
 
